@@ -3,7 +3,6 @@
 #include <vector>
 #include <fstream>
 
-//  { bfSize = bfOffBits + sizeof(RGBtriple)}
 class BitmapFileHeader;
 class BitmapInfoHeader;
 class Pallette;
@@ -30,9 +29,9 @@ class Bitmap
             }
         }
 
-        friend std::ostream& operator<< (std::ostream &os, const Pallette& pal) 
+        friend std::ostream& operator<< (std::ostream &outstream, const Pallette& pal) 
         {
-            return os << pal.palletteArray;
+            return outstream << pal.palletteArray;
         }
     };
 
@@ -67,20 +66,20 @@ class Bitmap
         __LONG32 GetbiHeight() { return biHeight; };
         void SetbiBitCount(int bitCount = 24) { biBitCount = bitCount; };
 
-        friend std::ostream& operator<< (std::ostream &os, const BitmapInfoHeader& bi) 
+        friend std::ostream& operator<< (std::ostream &outstream, const BitmapInfoHeader& bi) 
         {
-            os.write((char*)&bi.biSize, sizeof(bi.biSize));
-            os.write((char*)&bi.biWidth, sizeof(bi.biWidth));
-            os.write((char*)&bi.biHeight, sizeof(bi.biHeight));
-            os.write((char*)&bi.biPlanes, sizeof(bi.biPlanes));
-            os.write((char*)&bi.biBitCount, sizeof(bi.biBitCount));
-            os.write((char*)&bi.biCompression, sizeof(bi.biCompression));
-            os.write((char*)&bi.biSizeImage, sizeof(bi.biSizeImage));
-            os.write((char*)&bi.biXPelsPerMeter, sizeof(bi.biXPelsPerMeter));
-            os.write((char*)&bi.biYPelsPerMeter, sizeof(bi.biYPelsPerMeter));
-            os.write((char*)&bi.biClrUsed, sizeof(bi.biClrUsed));
-            os.write((char*)&bi.biClrImportant, sizeof(bi.biClrImportant));
-            return os ;
+            outstream.write((char*)&bi.biSize, sizeof(bi.biSize));
+            outstream.write((char*)&bi.biWidth, sizeof(bi.biWidth));
+            outstream.write((char*)&bi.biHeight, sizeof(bi.biHeight));
+            outstream.write((char*)&bi.biPlanes, sizeof(bi.biPlanes));
+            outstream.write((char*)&bi.biBitCount, sizeof(bi.biBitCount));
+            outstream.write((char*)&bi.biCompression, sizeof(bi.biCompression));
+            outstream.write((char*)&bi.biSizeImage, sizeof(bi.biSizeImage));
+            outstream.write((char*)&bi.biXPelsPerMeter, sizeof(bi.biXPelsPerMeter));
+            outstream.write((char*)&bi.biYPelsPerMeter, sizeof(bi.biYPelsPerMeter));
+            outstream.write((char*)&bi.biClrUsed, sizeof(bi.biClrUsed));
+            outstream.write((char*)&bi.biClrImportant, sizeof(bi.biClrImportant));
+            return outstream ;
         }
         friend std::istream& operator>> (std::istream &instream, BitmapInfoHeader& bi) 
         {
@@ -119,22 +118,25 @@ class Bitmap
                 bfReserved2 = 0x0000;  // always 0
                 bfOffBits   = 0x36;    // always 54
             }
-        void SetbfSize(BitmapInfoHeader& bi); 
+        void SetbfSize(BitmapInfoHeader& bi)
+        {
+            bfSize = bfOffBits + sizeof(RGBtriple) * bi.GetbiHeight() * bi.GetbiWidth();
+        } 
 
         int GetPixArrSize()
         {
             return bfSize-bfOffBits;
         }
 
-        friend std::ostream& operator<< (std::ostream &os, const BitmapFileHeader& bf) 
+        friend std::ostream& operator<< (std::ostream &outstream, const BitmapFileHeader& bf) 
         {
-            os.write((char*)&bf.bfType, sizeof(bf.bfType));
-            os.write((char*)&bf.bfSize, sizeof(bf.bfSize));
-            os.write((char*)&bf.bfReserved1, sizeof(bf.bfReserved1));
-            os.write((char*)&bf.bfReserved2, sizeof(bf.bfReserved2));
-            os.write((char*)&bf.bfOffBits, sizeof(bf.bfOffBits));
+            outstream.write((char*)&bf.bfType, sizeof(bf.bfType));
+            outstream.write((char*)&bf.bfSize, sizeof(bf.bfSize));
+            outstream.write((char*)&bf.bfReserved1, sizeof(bf.bfReserved1));
+            outstream.write((char*)&bf.bfReserved2, sizeof(bf.bfReserved2));
+            outstream.write((char*)&bf.bfOffBits, sizeof(bf.bfOffBits));
             
-            return os;
+            return outstream;
         }
         friend std::istream& operator>> (std::istream &instream, const BitmapFileHeader& bf) 
         {
@@ -151,25 +153,25 @@ class Bitmap
     class RGBtriple
     {
         private: 
-        char rgbBlue;
-        char rgbGreen;
-        char rgbRed;
+        __UINT8_TYPE__ rgbBlue;
+        __UINT8_TYPE__ rgbGreen;
+        __UINT8_TYPE__ rgbRed;
         public: 
         RGBtriple() { rgbBlue = 0; rgbGreen = 0; rgbRed = 0; } ; 
-        void SetRGBtriple(char red, char green, char blue)
+        void SetRGBtriple(__UINT8_TYPE__ red, __UINT8_TYPE__ green, __UINT8_TYPE__ blue)
         {
             rgbBlue  = blue;
             rgbGreen = green;
             rgbRed   = red;
         }
 
-        void SetRGBblue(char blue) { rgbBlue = blue; }
-        void SetRGBgreen(char green) { rgbGreen = green; }
-        void SetRGBred(char red) { rgbRed = red; }
+        void SetRGBblue(__UINT8_TYPE__ blue) { rgbBlue = blue; }
+        void SetRGBgreen(__UINT8_TYPE__ green) { rgbGreen = green; }
+        void SetRGBred(__UINT8_TYPE__ red) { rgbRed = red; }
 
-        friend std::ostream& operator<< (std::ostream &os, const RGBtriple& rgb) 
+        friend std::ostream& operator<< (std::ostream &outstream, const RGBtriple& rgb) 
         {
-            return os << rgb.rgbBlue << rgb.rgbGreen << rgb.rgbRed;
+            return outstream << rgb.rgbBlue << rgb.rgbGreen << rgb.rgbRed;
         }
         friend std::istream& operator>> (std::istream &instream, const RGBtriple& rgb) 
         {
@@ -219,13 +221,13 @@ class Bitmap
             return pixelArray.at(i);
         }
 
-        friend std::ostream& operator<< (std::ostream &os, PixArray& pixels) 
+        friend std::ostream& operator<< (std::ostream &outstream, PixArray& pixels) 
         {
             for(int i = 0; i<pixels.pixelArray.size();i++)
             {
-                os << pixels.GetConcretePixel(i);
+                outstream << pixels.GetConcretePixel(i);
             }
-            return os;
+            return outstream;
         }
         friend std::istream& operator>> (std::istream &instream, PixArray& pixels) 
         {
@@ -315,9 +317,4 @@ int main()
     
     std::cout << "EXIT" << std::endl;
     return 0;
-}
-
-void Bitmap::BitmapFileHeader::SetbfSize(BitmapInfoHeader &bi)
-{
-    bfSize = bfOffBits + sizeof(RGBtriple) * bi.GetbiHeight() * bi.GetbiWidth();
 }
