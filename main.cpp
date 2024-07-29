@@ -123,9 +123,11 @@ class Bitmap
             bfSize = bfOffBits + sizeof(RGBtriple) * bi.GetbiHeight() * bi.GetbiWidth();
         } 
 
-        int GetPixArrSize()
+        int GetPixArrSize() { return bfSize-bfOffBits; }
+        bool CheckBM()
         {
-            return bfSize-bfOffBits;
+            if (bfType[0] == 0x42 && bfType[1] == 0x4D) return true;
+            else return false;
         }
 
         friend std::ostream& operator<< (std::ostream &outstream, const BitmapFileHeader& bf) 
@@ -277,6 +279,7 @@ class Bitmap
             imageout << bf << bi << pixels;
             if (imageout.fail()) throw "Cannot print in file";
             imageout.close();
+            std::cout << "Saved successfully" << std::endl;
         }
         catch(char const* errorline)
         {
@@ -292,9 +295,10 @@ class Bitmap
         try {
             if (!imagein.is_open()) throw "Cannot open to read file";
             imagein >> bf;
+            if (!this->bf.CheckBM()) throw "File is not a BMP or corrupted";
             pixels.SetArraySize(bf.GetPixArrSize());
             imagein >> bi >> pixels;
-            if (imagein.fail()) throw "Cannot read in file";
+            if (imagein.eofbit) throw "Readed successfully";
             imagein.close();
         }
         catch(char const* errorline)
@@ -310,10 +314,11 @@ int main()
     std::cout << "START" << std::endl;
     Bitmap image;
 
-    image.ReadBMP("in4.bmp");
-    std::cout << "Readed" << std::endl;
+    std::cout << "Reading..." << std::endl;
+    image.ReadBMP("samples/in4.bmp");
+
+    std::cout << "Saving..." << std::endl;
     image.SaveAsBMP();
-    std::cout << "Saved" << std::endl;
     
     std::cout << "EXIT" << std::endl;
     return 0;
