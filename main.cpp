@@ -82,6 +82,21 @@ class Bitmap
             os.write((char*)&bi.biClrImportant, sizeof(bi.biClrImportant));
             return os ;
         }
+        friend std::istream& operator>> (std::istream &instream, BitmapInfoHeader& bi) 
+        {
+            instream.read((char*)&bi.biSize, sizeof(bi.biSize));
+            instream.read((char*)&bi.biWidth, sizeof(bi.biWidth));
+            instream.read((char*)&bi.biHeight, sizeof(bi.biHeight));
+            instream.read((char*)&bi.biPlanes, sizeof(bi.biPlanes));
+            instream.read((char*)&bi.biBitCount, sizeof(bi.biBitCount));
+            instream.read((char*)&bi.biCompression, sizeof(bi.biCompression));
+            instream.read((char*)&bi.biSizeImage, sizeof(bi.biSizeImage));
+            instream.read((char*)&bi.biXPelsPerMeter, sizeof(bi.biXPelsPerMeter));
+            instream.read((char*)&bi.biYPelsPerMeter, sizeof(bi.biYPelsPerMeter));
+            instream.read((char*)&bi.biClrUsed, sizeof(bi.biClrUsed));
+            instream.read((char*)&bi.biClrImportant, sizeof(bi.biClrImportant));
+            return instream ;
+        }
     };
     
     
@@ -106,6 +121,11 @@ class Bitmap
             }
         void SetbfSize(BitmapInfoHeader& bi); 
 
+        int GetPixArrSize()
+        {
+            return bfSize-bfOffBits;
+        }
+
         friend std::ostream& operator<< (std::ostream &os, const BitmapFileHeader& bf) 
         {
             os.write((char*)&bf.bfType, sizeof(bf.bfType));
@@ -115,6 +135,16 @@ class Bitmap
             os.write((char*)&bf.bfOffBits, sizeof(bf.bfOffBits));
             
             return os;
+        }
+        friend std::istream& operator>> (std::istream &instream, const BitmapFileHeader& bf) 
+        {
+            instream.read((char*)&bf.bfType, sizeof(bf.bfType));
+            instream.read((char*)&bf.bfSize, sizeof(bf.bfSize));
+            instream.read((char*)&bf.bfReserved1, sizeof(bf.bfReserved1));
+            instream.read((char*)&bf.bfReserved2, sizeof(bf.bfReserved2));
+            instream.read((char*)&bf.bfOffBits, sizeof(bf.bfOffBits));
+            
+            return instream;
         }
     };
 
@@ -132,9 +162,21 @@ class Bitmap
             rgbGreen = green;
             rgbRed   = red;
         }
+
+        void SetRGBblue(char blue) { rgbBlue = blue; }
+        void SetRGBgreen(char green) { rgbGreen = green; }
+        void SetRGBred(char red) { rgbRed = red; }
+
         friend std::ostream& operator<< (std::ostream &os, const RGBtriple& rgb) 
         {
             return os << rgb.rgbBlue << rgb.rgbGreen << rgb.rgbRed;
+        }
+        friend std::istream& operator>> (std::istream &instream, const RGBtriple& rgb) 
+        {
+            instream.read((char*)rgb.rgbBlue, sizeof(rgb.rgbBlue));
+            instream.read((char*)rgb.rgbGreen, sizeof(rgb.rgbGreen));
+            instream.read((char*)rgb.rgbRed, sizeof(rgb.rgbRed));
+            return instream;
         }
     };    
 
@@ -164,6 +206,13 @@ class Bitmap
         {
             pixelArray[i] = triple;
         }
+
+        void SetConcretePixel(int i, char blue, char green, char red) 
+        {
+            pixelArray[i].SetRGBtriple(red, green, blue);
+            RGBtriple triple = GetConcretePixel(i);
+            pixelArray[i] = triple;
+        }
         
         RGBtriple GetConcretePixel(int i)
         {
@@ -177,6 +226,20 @@ class Bitmap
                 os << pixels.GetConcretePixel(i);
             }
             return os;
+        }
+        friend std::istream& operator>> (std::istream &instream, PixArray& pixels) 
+        {
+            char tmpblue, tmpgreen, tmpred;
+            for(int i = 0; i<pixels.pixelArray.size();i++)
+            {
+                instream.read((char*)&tmpblue, sizeof(tmpblue));
+                pixels.pixelArray[i].SetRGBblue(tmpblue);
+                instream.read((char*)&tmpgreen, sizeof(tmpgreen));
+                pixels.pixelArray[i].SetRGBgreen(tmpgreen);
+                instream.read((char*)&tmpred, sizeof(tmpred));
+                pixels.pixelArray[i].SetRGBred(tmpred);
+            }
+            return instream;
         }
     };
     BitmapInfoHeader bi;
@@ -219,17 +282,38 @@ class Bitmap
             imageout.close();
         } 
     }
+
+    void ReadBMP(const char* filename)
+    {
+        this->filename = filename;
+        std::fstream imagein(this->filename, std::ios_base::in | std::ios_base::binary);
+        try {
+            if (!imagein.is_open()) throw "Cannot open to read file";
+            imagein >> bf;
+            pixels.SetArraySize(bf.GetPixArrSize());
+            imagein >> bi >> pixels;
+            if (imagein.fail()) throw "Cannot read in file";
+            imagein.close();
+        }
+        catch(char const* errorline)
+        {
+            std::cout << errorline << std::endl;
+            imageout.close();
+        } 
+    }
 };
 
 int main()
 {
-    std::cout << "Start" << std::endl;
+    std::cout << "START" << std::endl;
     Bitmap image;
 
-    image.SetBitmap(1, 1, 1);
+    image.ReadBMP("in4.bmp");
+    std::cout << "Readed" << std::endl;
     image.SaveAsBMP();
+    std::cout << "Saved" << std::endl;
     
-    
+    std::cout << "EXIT" << std::endl;
     return 0;
 }
 
