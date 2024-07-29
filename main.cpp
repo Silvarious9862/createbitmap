@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <cmath>
 
 class BitmapFileHeader;
 class BitmapInfoHeader;
@@ -9,6 +10,10 @@ class Pallette;
 class RGBtriple;
 class PixArray;
 class Bitmap;
+
+double FindPerceivedLightness(__UINT8_TYPE__ red, __UINT8_TYPE__ green, __UINT8_TYPE__ blue);
+inline double LumiToLstar(double luminance);
+inline double ColorLinear(double color);
 
 
 
@@ -309,16 +314,40 @@ class Bitmap
     }
 };
 
+double FindPerceivedLightness(__UINT8_TYPE__ red, __UINT8_TYPE__ green, __UINT8_TYPE__ blue)
+{
+    double colorRed = red / 255.0, colorGreen = green / 255.0, colorBlue = blue / 255.0;
+    
+    // Linear values
+    colorRed = ColorLinear(colorRed);
+    colorGreen = ColorLinear(colorGreen);
+    colorBlue = ColorLinear(colorBlue);
+
+    double luminance = colorRed * 0.2126 + colorGreen * 0.7152 + colorBlue * 0.0722;
+    double lstar = LumiToLstar(luminance); //from 0 to 100
+    return lstar;
+}
+
+inline double LumiToLstar(double luminance)
+{
+    if (luminance <= 216/24389) return luminance * 903.3;
+    else return pow(luminance, (1.0/3.0)) * 116.0 - 16.0;
+}
+
+inline double ColorLinear(double color)
+{
+    if (color <= 0.4045) return color / 12.92;
+    else return pow(((color+0.055)/1.055), 2.4);
+}
+
 int main()
 {
     std::cout << "START" << std::endl;
     Bitmap image;
 
-    std::cout << "Reading..." << std::endl;
-    image.ReadBMP("samples/in4.bmp");
-
-    std::cout << "Saving..." << std::endl;
-    image.SaveAsBMP();
+    std::cout << "PerceivedLightness 1 = " << FindPerceivedLightness(8, 8, 9) << std::endl;
+    std::cout << "PerceivedLightness 2 = " << FindPerceivedLightness(8, 9, 8) << std::endl;
+    std::cout << "PerceivedLightness 3 = " << FindPerceivedLightness(9, 8, 8) << std::endl;
     
     std::cout << "EXIT" << std::endl;
     return 0;
