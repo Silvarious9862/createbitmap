@@ -17,7 +17,7 @@ inline double LumiToLstar(double luminance);
 inline double ColorLinear(double color);
 template<typename T>
 void PrintMatrix(std::vector<double> const& matrix, int row_size);
-
+// memes
 
 
 class Bitmap
