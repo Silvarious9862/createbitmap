@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -14,6 +15,8 @@ class Bitmap;
 double FindPerceivedLightness(__UINT8_TYPE__ red, __UINT8_TYPE__ green, __UINT8_TYPE__ blue);
 inline double LumiToLstar(double luminance);
 inline double ColorLinear(double color);
+template<typename T>
+void PrintMatrix(std::vector<double> const& matrix, int row_size);
 
 
 
@@ -49,8 +52,6 @@ class Bitmap
         __UINT32_TYPE__ biCompression, biSizeImage;
         __LONG32 biXPelsPerMeter, biYPelsPerMeter;
         __UINT32_TYPE__ biClrUsed, biClrImportant;
-        
-        
         
         public: 
         BitmapInfoHeader()
@@ -128,12 +129,15 @@ class Bitmap
             bfSize = bfOffBits + sizeof(RGBtriple) * bi.GetbiHeight() * bi.GetbiWidth();
         } 
 
-        int GetPixArrSize() { return bfSize-bfOffBits; }
+        
         bool CheckBM()
         {
             if (bfType[0] == 0x42 && bfType[1] == 0x4D) return true;
             else return false;
         }
+
+        __UINT32_TYPE__ GetbfSize() { return bfSize; };
+        __UINT32_TYPE__ GetbfOffBits() { return bfOffBits; };
 
         friend std::ostream& operator<< (std::ostream &outstream, const BitmapFileHeader& bf) 
         {
@@ -163,6 +167,7 @@ class Bitmap
         __UINT8_TYPE__ rgbBlue;
         __UINT8_TYPE__ rgbGreen;
         __UINT8_TYPE__ rgbRed;
+
         public: 
         RGBtriple() { rgbBlue = 0; rgbGreen = 0; rgbRed = 0; } ; 
         void SetRGBtriple(__UINT8_TYPE__ red, __UINT8_TYPE__ green, __UINT8_TYPE__ blue)
@@ -175,6 +180,9 @@ class Bitmap
         void SetRGBblue(__UINT8_TYPE__ blue) { rgbBlue = blue; }
         void SetRGBgreen(__UINT8_TYPE__ green) { rgbGreen = green; }
         void SetRGBred(__UINT8_TYPE__ red) { rgbRed = red; }
+        __UINT8_TYPE__ GetRgbBlue() const { return rgbBlue; }
+        __UINT8_TYPE__ GetRgbGreen() const { return rgbGreen; }
+        __UINT8_TYPE__ GetRgbRed() const { return rgbRed; }
 
         friend std::ostream& operator<< (std::ostream &outstream, const RGBtriple& rgb) 
         {
@@ -251,6 +259,7 @@ class Bitmap
             return instream;
         }
     };
+    
     BitmapInfoHeader bi;
     BitmapFileHeader bf;
     Pallette pal;
@@ -268,7 +277,7 @@ class Bitmap
         this->filename = filename;
     }
 
-    void SetBitmap(char red, char green, char blue)
+    void SetMonoBitmap(char red, char green, char blue)
     {
         bi.SetbiBitCount(24);
         rgb.SetRGBtriple(red, green, blue);
@@ -293,6 +302,26 @@ class Bitmap
         } 
     }
 
+    int GetPixArrSize() { return bf.GetbfSize()-bf.GetbfOffBits(); }
+    int GetbiHeight_public() { return bi.GetbiHeight(); };
+    int GetbiWidth_public() { return bi.GetbiWidth(); };
+    __INT8_TYPE__ GetPixelRed(int i)
+    {
+        rgb = pixels.GetConcretePixel(i);
+        return rgb.GetRgbRed();
+    }
+    __INT8_TYPE__ GetPixelGreen(int i)
+    {
+        rgb = pixels.GetConcretePixel(i);
+        return rgb.GetRgbGreen();
+    }
+    __INT8_TYPE__ GetPixelBlue(int i)
+    {
+        rgb = pixels.GetConcretePixel(i);
+        return rgb.GetRgbBlue();
+    }
+
+
     void ReadBMP(const char* filename)
     {
         this->filename = filename;
@@ -301,7 +330,7 @@ class Bitmap
             if (!imagein.is_open()) throw "Cannot open to read file";
             imagein >> bf;
             if (!this->bf.CheckBM()) throw "File is not a BMP or corrupted";
-            pixels.SetArraySize(bf.GetPixArrSize());
+            pixels.SetArraySize(GetPixArrSize());
             imagein >> bi >> pixels;
             if (imagein.eofbit) throw "Readed successfully";
             imagein.close();
@@ -317,15 +346,7 @@ class Bitmap
 double FindPerceivedLightness(__UINT8_TYPE__ red, __UINT8_TYPE__ green, __UINT8_TYPE__ blue)
 {
     double colorRed = red / 255.0, colorGreen = green / 255.0, colorBlue = blue / 255.0;
-    
-    // Linear values
-    colorRed = ColorLinear(colorRed);
-    colorGreen = ColorLinear(colorGreen);
-    colorBlue = ColorLinear(colorBlue);
-
-    double luminance = colorRed * 0.2126 + colorGreen * 0.7152 + colorBlue * 0.0722;
-    double lstar = LumiToLstar(luminance); //from 0 to 100
-    return lstar;
+    return LumiToLstar(ColorLinear(colorRed) * 0.2126 + ColorLinear(colorGreen) * 0.7152 + ColorLinear(colorBlue) * 0.0722);
 }
 
 inline double LumiToLstar(double luminance)
@@ -340,15 +361,40 @@ inline double ColorLinear(double color)
     else return pow(((color+0.055)/1.055), 2.4);
 }
 
+void PrintMatrix(std::vector<double> const& matrix, int row_size)
+{
+    int row_number = 0;
+    for (int i = matrix.size() - 1, j = 0; i > 0;)
+    {
+        std::cout << std::setw(4) << std::setprecision(2) << matrix[i] << " ";
+        i -= 10; j += 10;
+        if (j >= row_size) { std::cout << "  R" << row_number <<std::endl; j = 0; row_number++;}
+    }
+};
+
 int main()
 {
     std::cout << "START" << std::endl;
     Bitmap image;
-
-    std::cout << "PerceivedLightness 1 = " << FindPerceivedLightness(8, 8, 9) << std::endl;
-    std::cout << "PerceivedLightness 2 = " << FindPerceivedLightness(8, 9, 8) << std::endl;
-    std::cout << "PerceivedLightness 3 = " << FindPerceivedLightness(9, 8, 8) << std::endl;
     
+    image.ReadBMP("samples/in.bmp");
+
+    std::vector<double> matrix(1, 0);
+    matrix.resize(image.GetPixArrSize()/3);
+    __UINT8_TYPE__ red, green, blue;
+    double lightness;
+    int row, column;
+
+    for (int i = 0; i<matrix.size();i++)
+    {
+        red = image.GetPixelRed(i);
+        green = image.GetPixelGreen(i);
+        blue = image.GetPixelBlue(i);
+        lightness = FindPerceivedLightness(red, green, blue);
+        matrix.at(i) = lightness;
+    }
+    PrintMatrix(matrix, image.GetbiWidth_public());
+
     std::cout << "EXIT" << std::endl;
     return 0;
 }
